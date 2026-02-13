@@ -28,7 +28,7 @@
       padding:18px;
     }
     .card{
-      width:min(560px, 92vw);
+      width:min(520px, 92vw); /* чуть компактнее */
       background:var(--card);
       backdrop-filter: blur(12px);
       border:1px solid #ffffffb3;
@@ -39,14 +39,19 @@
     }
     h1{ margin:0 0 10px; font-size:22px; }
     p{ margin:0 0 14px; color:var(--muted); }
+
+    /* ✅ УБРАЛ "второе окно": нет рамки/скругления/тени-карточки */
     img{
       width:100%;
       max-width:420px;
-      border-radius:22px;
+      height:auto;
+      border-radius:0;        /* было 22px */
       display:block;
       margin:0 auto;
-      box-shadow: 0 16px 36px rgba(0,0,0,.10);
+      box-shadow:none;        /* было 0 16px 36px ... */
+      filter: drop-shadow(0 12px 22px rgba(0,0,0,.12)); /* мягкая тень самого стикера */
     }
+
     a{
       display:inline-block;
       margin-top:14px;
