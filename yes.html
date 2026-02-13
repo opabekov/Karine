@@ -8,11 +8,13 @@
     :root{
       --bg1:#fff6fb;
       --bg2:#f3f6ff;
-      --card:#ffffffcc;
+      --card:#ffffffd8;      /* как на первой */
       --text:#2b2b2b;
       --muted:#6b6b6b;
+      --border:#00000010;
     }
     *{ box-sizing:border-box; }
+
     body{
       margin:0;
       min-height:100vh;
@@ -27,29 +29,41 @@
       overflow:hidden;
       padding:18px;
     }
+
+    /* ✅ делаем карточку такого же размера/стиля, как на index */
     .card{
-      width:min(520px, 92vw); /* чуть компактнее */
+      width:min(760px, 92vw);
       background:var(--card);
       backdrop-filter: blur(12px);
       border:1px solid #ffffffb3;
-      border-radius:26px;
-      padding:22px;
+      border-radius:30px;
+      padding:36px 28px 28px;
       box-shadow: 0 18px 60px rgba(0,0,0,.10);
       text-align:center;
     }
-    h1{ margin:0 0 10px; font-size:22px; }
-    p{ margin:0 0 14px; color:var(--muted); }
 
-    /* ✅ УБРАЛ "второе окно": нет рамки/скругления/тени-карточки */
+    h1{
+      margin:0 0 10px;
+      font-size: clamp(22px, 3vw, 30px);
+      line-height:1.15;
+      letter-spacing:-0.02em;
+    }
+    p{
+      margin:0 0 16px;
+      color:var(--muted);
+      font-size: clamp(13px, 1.8vw, 16px);
+    }
+
+    /* ✅ увеличили стикер, чтобы по ощущению совпадал с большой головой */
     img{
-      width:100%;
-      max-width:420px;
-      height:auto;
-      border-radius:0;        /* было 22px */
       display:block;
-      margin:0 auto;
-      box-shadow:none;        /* было 0 16px 36px ... */
-      filter: drop-shadow(0 12px 22px rgba(0,0,0,.12)); /* мягкая тень самого стикера */
+      margin: 0 auto;
+      width: clamp(340px, 55vw, 600px);
+      max-width: 100%;
+      height:auto;
+      border-radius:0;
+      box-shadow:none;
+      filter: drop-shadow(0 12px 22px rgba(0,0,0,.12));
     }
 
     a{
