@@ -29,7 +29,6 @@
       overflow:hidden;
     }
 
-    /* Bigger + more visible hearts */
     .hearts{ position:fixed; inset:0; pointer-events:none; opacity:.55; }
     .heart{
       position:absolute;
@@ -66,12 +65,13 @@
       text-align:center;
     }
 
-    /* Bigger head */
+    /* HEAD BIGGER (responsive) */
     .head-img{
       display:block;
       margin: 0 auto 18px;
-      width: 320px;   /* CHANGED: was 170 */
-      height: 320px;  /* CHANGED: was 170 */
+      width: clamp(220px, 34vw, 340px);
+      aspect-ratio: 1 / 1;
+      height: auto;
       object-fit: contain;
       filter: drop-shadow(0 14px 22px rgba(0,0,0,.12));
     }
@@ -83,7 +83,7 @@
       letter-spacing:-0.02em;
     }
 
-    /* Buttons layout: YES never moves */
+    /* Absolute layout so YES never shifts */
     .buttons{
       margin-top:26px;
       position:relative;
@@ -103,32 +103,32 @@
       user-select:none;
       touch-action: manipulation;
       min-width: 120px;
+      position:absolute; /* IMPORTANT: no layout shifting */
+      top:50%;
+      left:50%;
     }
     button:hover{
-      transform: translateY(-1px);
       box-shadow: 0 14px 26px rgba(0,0,0,.08);
     }
 
+    /* YES = left, fixed */
     #yesBtn{
       background: linear-gradient(135deg, color-mix(in srgb, var(--accent) 78%, white), #ffd3e3);
       border-color:#ffffff90;
-      position:absolute;
-      left:50%;
-      top:50%;
-      transform: translate(-50%, -50%) !important; /* CHANGED: lock */
-      z-index:2; /* stay on top, never moves */
+      transform: translate(calc(-50% - 90px), -50%); /* left of center */
+      z-index:2;
     }
-    #yesBtn:hover{ transform: translate(-50%, -50%) !important; } /* CHANGED: no movement */
+    /* lock YES from moving on hover */
+    #yesBtn:hover{
+      transform: translate(calc(-50% - 90px), -50%);
+      box-shadow: 0 14px 26px rgba(0,0,0,.08);
+    }
 
+    /* NO = right initially, then JS moves it */
     #noBtn{
-      position:absolute;
-      left:calc(50% - 170px);
-      top:50%;
-      transform: translateY(-50%);
+      transform: translate(calc(-50% + 90px), -50%); /* right of center */
       z-index:1;
     }
-    #noBtn:hover{ transform: translateY(calc(-50% - 1px)); }
-
   </style>
 </head>
 <body>
@@ -146,7 +146,6 @@
 
 <script>
   // Optional personalization via URL:
-  // ?name=Karine&msg=will%20you%20be%20my%20Valentine%3F%20%F0%9F%92%97
   const params = new URLSearchParams(location.search);
   const name = params.get("name") || "Karine";
   const msg  = params.get("msg")  || "will you be my Valentine? 💗";
@@ -156,73 +155,181 @@
   const noBtn  = document.getElementById("noBtn");
   const area   = document.getElementById("btnArea");
 
-  // Redirect to second page on Yes
   yesBtn.addEventListener("click", () => {
     window.location.href = "./yes.html" + (location.search || "");
   });
 
-  // No runs away ONLY after first hover/touch (and moves inside btnArea)
-  let noIsInitialized = false;
+  // ---------- NO убегает ОТ курсора (в противоположную сторону) + не кликается ----------
+  let noReady = false;
+  let lastPointer = { x: 0, y: 0 };
 
-  function initNoAbsolute(){
-    if (noIsInitialized) return;
+  function clamp(v, min, max) { return Math.max(min, Math.min(max, v)); }
 
-    const areaRect = area.getBoundingClientRect();
-    const noRect = noBtn.getBoundingClientRect();
+  function ensureNoAbsolute(){
+    if (noReady) return;
 
-    const left = noRect.left - areaRect.left;
-    const top  = noRect.top  - areaRect.top;
+    const a = area.getBoundingClientRect();
+    const n = noBtn.getBoundingClientRect();
 
-    noBtn.style.left = `${left}px`;
-    noBtn.style.top  = `${top}px`;
-    noBtn.style.transform = ""; // we'll control top/left directly now
+    // текущая визуальная позиция -> локальные координаты
+    noBtn.style.left = (n.left - a.left) + "px";
+    noBtn.style.top  = (n.top  - a.top)  + "px";
     noBtn.style.position = "absolute";
+    noBtn.style.transform = "translate(0,0)";
 
-    noIsInitialized = true;
+    noReady = true;
   }
 
-  function moveNo(){
-    initNoAbsolute();
+  function pointerLocal(e){
+    const a = area.getBoundingClientRect();
+    return { x: e.clientX - a.left, y: e.clientY - a.top };
+  }
 
-    const areaRect = area.getBoundingClientRect();
-    const noRect   = noBtn.getBoundingClientRect();
+  function overlapsYes(left, top, noW, noH){
+    const a = area.getBoundingClientRect();
+    const y = yesBtn.getBoundingClientRect();
 
-    const padX = 12;
-    const padY = 12;
-
-    const maxX = areaRect.width  - noRect.width  - padX;
-    const maxY = areaRect.height - noRect.height - padY;
-
-    // keep some distance from the centered YES button
-    const yesRect = yesBtn.getBoundingClientRect();
-    const yesLocal = {
-      left: yesRect.left - areaRect.left,
-      top:  yesRect.top  - areaRect.top,
-      right: yesRect.right - areaRect.left,
-      bottom: yesRect.bottom - areaRect.top
+    // YES в локальные + небольшой “буфер”
+    const pad = 14;
+    const yes = {
+      left:   (y.left  - a.left) - pad,
+      top:    (y.top   - a.top)  - pad,
+      right:  (y.right - a.left) + pad,
+      bottom: (y.bottom- a.top)  + pad
     };
 
-    let x, y, tries = 0;
-    do {
-      x = padX + Math.random() * Math.max(0, maxX);
-      y = padY + Math.random() * Math.max(0, maxY);
-      tries++;
-    } while (tries < 30 && (
-      x < yesLocal.right + 12 && x + noRect.width > yesLocal.left - 12 &&
-      y < yesLocal.bottom + 12 && y + noRect.height > yesLocal.top - 12
-    ));
-
-    noBtn.style.left = `${x}px`;
-    noBtn.style.top  = `${y}px`;
+    return !(left + noW < yes.left ||
+             left > yes.right ||
+             top + noH < yes.top ||
+             top > yes.bottom);
   }
 
-  noBtn.addEventListener("mouseenter", moveNo);
+  function moveNoOpposite(px, py){
+    ensureNoAbsolute();
+
+    const a = area.getBoundingClientRect();
+    const nRect = noBtn.getBoundingClientRect();
+    const noW = nRect.width;
+    const noH = nRect.height;
+
+    const pad = 10;
+    const maxX = a.width  - noW - pad;
+    const maxY = a.height - noH - pad;
+
+    // текущий центр NO (локально)
+    const curLeft = parseFloat(noBtn.style.left || "0");
+    const curTop  = parseFloat(noBtn.style.top  || "0");
+    const cx = curLeft + noW / 2;
+    const cy = curTop  + noH / 2;
+
+    // вектор от курсора к кнопке (это и есть “направление убегания”)
+    let dx = cx - px;
+    let dy = cy - py;
+    let dist = Math.hypot(dx, dy);
+
+    if (dist < 0.001) { dx = 1; dy = 0; dist = 1; } // если курсор прямо в центре
+
+    const MIN_DIST = 140;   // держим дистанцию от курсора до центра кнопки
+    const LERP = 0.78;      // плавность/скорость убегания (0..1)
+
+    // цель — точка на окружности вокруг курсора в противоположную сторону
+    const tx = px + (dx / dist) * MIN_DIST;
+    const ty = py + (dy / dist) * MIN_DIST;
+
+    // плавно приближаемся к цели (чтобы не телепортировалась резко)
+    let nx = cx + (tx - cx) * LERP;
+    let ny = cy + (ty - cy) * LERP;
+
+    // центр -> left/top
+    let left = nx - noW / 2;
+    let top  = ny - noH / 2;
+
+    // если залезаем на YES — чуть “поворачиваем” направление убегания
+    if (overlapsYes(left, top, noW, noH)) {
+      const angles = [Math.PI/3, -Math.PI/3, Math.PI/2, -Math.PI/2, Math.PI*0.75, -Math.PI*0.75];
+      for (const ang of angles) {
+        const c = Math.cos(ang), s = Math.sin(ang);
+        const rdx = dx * c - dy * s;
+        const rdy = dx * s + dy * c;
+        const rdist = Math.hypot(rdx, rdy) || 1;
+
+        const rtx = px + (rdx / rdist) * MIN_DIST;
+        const rty = py + (rdy / rdist) * MIN_DIST;
+
+        nx = cx + (rtx - cx) * LERP;
+        ny = cy + (rty - cy) * LERP;
+
+        left = nx - noW / 2;
+        top  = ny - noH / 2;
+
+        if (!overlapsYes(left, top, noW, noH)) break;
+      }
+    }
+
+    // не выходим за пределы области
+    left = clamp(left, pad, maxX);
+    top  = clamp(top,  pad, maxY);
+
+    noBtn.style.left = left + "px";
+    noBtn.style.top  = top  + "px";
+  }
+
+  // убегает заранее, когда курсор близко
+  area.addEventListener("pointermove", (e) => {
+    const p = pointerLocal(e);
+    lastPointer = p;
+
+    ensureNoAbsolute();
+
+    const nRect = noBtn.getBoundingClientRect();
+    const noW = nRect.width;
+    const noH = nRect.height;
+
+    const left = parseFloat(noBtn.style.left || "0");
+    const top  = parseFloat(noBtn.style.top  || "0");
+    const cx = left + noW / 2;
+    const cy = top  + noH / 2;
+
+    const dist = Math.hypot(cx - p.x, cy - p.y);
+
+    // порог “опасной близости”
+    if (dist < 170) moveNoOpposite(p.x, p.y);
+  });
+
+  // если курсор все-таки задел — тоже убегает
+  noBtn.addEventListener("pointerenter", () => moveNoOpposite(lastPointer.x, lastPointer.y));
+
+  // полностью блокируем нажатия
+  ["pointerdown", "click"].forEach(evt => {
+    noBtn.addEventListener(evt, (e) => {
+      e.preventDefault();
+      e.stopPropagation();
+      const p = (e.clientX != null) ? pointerLocal(e) : lastPointer;
+      lastPointer = p;
+      moveNoOpposite(p.x, p.y);
+    });
+  });
+
+  // чтобы на мобилках не “нажималось”
   noBtn.addEventListener("touchstart", (e) => {
     e.preventDefault();
-    moveNo();
-  }, {passive:false});
+  }, { passive: false });
 
-  // Generate larger hearts
+  // при ресайзе не вываливаемся за края
+  window.addEventListener("resize", () => {
+    if (!noReady) return;
+    const a = area.getBoundingClientRect();
+    const n = noBtn.getBoundingClientRect();
+    const pad = 10;
+
+    const maxX = a.width  - n.width  - pad;
+    const maxY = a.height - n.height - pad;
+
+    noBtn.style.left = clamp(parseFloat(noBtn.style.left || "0"), pad, maxX) + "px";
+    noBtn.style.top  = clamp(parseFloat(noBtn.style.top  || "0"), pad, maxY) + "px";
+  });
+
+  // ---------- Hearts (твой генератор) ----------
   const heartsWrap = document.getElementById("hearts");
   const HEARTS = 28;
   for(let i=0;i<HEARTS;i++){
