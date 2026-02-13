@@ -103,8 +103,8 @@
       user-select:none;
       touch-action: manipulation;
       min-width: 120px;
-      width: 140px;              /* ✅ одинаковая ширина */
-      text-align: center;        /* ✅ одинаковое выравнивание текста */
+      width: 140px;
+      text-align: center;
       position:absolute;
       top:50%;
       left:50%;
@@ -132,7 +132,7 @@
       z-index: 9999;
       will-change: transform;
       transform: translate3d(0,0,0);
-      opacity: 0;                /* ✅ скрываем до инициализации (без дерганья) */
+      opacity: 0;
     }
   </style>
 </head>
@@ -214,14 +214,14 @@
     noBtn.style.transform = `translate3d(${x}px, ${y}px, 0)`;
   }
 
-  // Behavior params
-  const CURSOR_RADIUS   = 190;
-  const CURSOR_FORCE    = 1.25;
-  const YES_PAD         = 60;
-  const YES_FORCE       = 1.70;
-  const FRICTION        = 0.88;
-  const MAX_SPEED       = 18;
-  const OUTSIDE_MARGIN  = 40;
+  // ✅ More aggressive behavior params
+  const CURSOR_RADIUS   = 320;  // было 190: реагирует издалека
+  const CURSOR_FORCE    = 3.20; // было 1.25: сильнее толкает
+  const YES_PAD         = 70;   // чуть больше буфер вокруг Yes
+  const YES_FORCE       = 2.20; // сильнее выталкивает от Yes
+  const FRICTION        = 0.84; // было 0.88: меньше трения => быстрее
+  const MAX_SPEED       = 34;   // было 18: выше лимит скорости
+  const OUTSIDE_MARGIN  = 60;   // можно дальше выезжать за край
 
   function repelFromPoint(cx, cy, px, py, radius, force){
     const dx = cx - px;
@@ -229,8 +229,9 @@
     const dist = Math.hypot(dx, dy) || 1;
     if (dist >= radius) return;
 
+    // ✅ более “резкая” кривая (k^3)
     const k = 1 - (dist / radius);
-    const f = (k * k) * force;
+    const f = (k * k * k) * force;
 
     vx += (dx / dist) * f;
     vy += (dy / dist) * f;
@@ -251,14 +252,14 @@
 
     // inside forbidden zone -> strong push
     if (cx >= left && cx <= right && cy >= top && cy <= bottom) {
-      const f = force * 2.2;
+      const f = force * 2.6;
       vx += (dx / dist) * f;
       vy += (dy / dist) * f;
       return;
     }
 
     // near zone -> soft push
-    const nearRadius = 140;
+    const nearRadius = 180;
     if (dist < nearRadius) {
       const k = 1 - dist / nearRadius;
       const f = (k * k) * force;
@@ -300,10 +301,10 @@
     y += vy;
 
     const { minX, minY, maxX, maxY } = bounds();
-    if (x < minX) { x = minX; vx *= -0.55; }
-    if (y < minY) { y = minY; vy *= -0.55; }
-    if (x > maxX) { x = maxX; vx *= -0.55; }
-    if (y > maxY) { y = maxY; vy *= -0.55; }
+    if (x < minX) { x = minX; vx *= -0.65; }
+    if (y < minY) { y = minY; vy *= -0.65; }
+    if (x > maxX) { x = maxX; vx *= -0.65; }
+    if (y > maxY) { y = maxY; vy *= -0.65; }
 
     noBtn.style.transform = `translate3d(${x}px, ${y}px, 0)`;
     requestAnimationFrame(tick);
